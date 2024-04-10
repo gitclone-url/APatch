@@ -92,7 +92,7 @@ import me.bmax.apatch.APApplication
 import me.bmax.apatch.Natives
 import me.bmax.apatch.R
 import me.bmax.apatch.apApp
-import me.bmax.apatch.ui.component.AboutDialog
+import me.bmax.apatch.ui.screen.destinations.AboutScreenDestination 
 import me.bmax.apatch.ui.component.rememberConfirmDialog
 import me.bmax.apatch.ui.component.rememberCustomDialog
 import me.bmax.apatch.ui.screen.destinations.InstallModeSelectScreenDestination
@@ -117,12 +117,12 @@ fun HomeScreen(navigator: DestinationsNavigator) {
     if (kpState != APApplication.State.UNKNOWN_STATE) {
         showPatchFloatAction = false
     }
-
-    Scaffold(topBar = {
-        TopBar(onInstallClick = {
-            navigator.navigate(InstallModeSelectScreenDestination, true)
-        })
-    }) { innerPadding ->
+    
+    Scaffold(
+        topBar = {
+            HomeTopBar(navigator)
+        }
+    ) { innerPadding ->
         Column(
             modifier = Modifier
                 .padding(innerPadding)
@@ -397,20 +397,17 @@ fun RebootDropdownItem(@StringRes id: Int, reason: String = "") {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TopBar(onInstallClick: () -> Unit) {
+private fun HomeTopBar(navigator: DestinationsNavigator) {
     val uriHandler = LocalUriHandler.current
-    val aboutDialog = rememberCustomDialog {
-        AboutDialog(it)
-    }
     var showDropdownMoreOptions by remember { mutableStateOf(false) }
     var showDropdownReboot by remember { mutableStateOf(false) }
 
     TopAppBar(title = {
-        Text(
-            stringResource(R.string.app_name),
-            modifier = Modifier.clickable { aboutDialog.show() })
+        Text(stringResource(R.string.app_name))
     }, actions = {
-        IconButton(onClick = onInstallClick) {
+        IconButton(onClick = {
+            navigator.navigate(InstallModeSelectScreenDestination, true)
+        }) {
             Icon(
                 imageVector = Icons.Filled.InstallMobile,
                 contentDescription = stringResource(id = R.string.mode_select_page_title)
@@ -457,11 +454,12 @@ private fun TopBar(onInstallClick: () -> Unit) {
                         showDropdownMoreOptions = false
                         uriHandler.openUri("https://github.com/bmax121/APatch/issues/new/choose")
                     })
+
                     DropdownMenuItem(text = {
                         Text(stringResource(R.string.home_more_menu_about))
                     }, onClick = {
                         showDropdownMoreOptions = false
-                        aboutDialog.show()
+                        navigator.navigate(AboutScreenDestination)
                     })
                 }
             }
