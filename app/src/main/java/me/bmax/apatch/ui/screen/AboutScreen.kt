@@ -115,7 +115,7 @@ fun AboutScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             Logo(
-                icon = painterResource(id = R.drawable.ic_launcher_foreground),
+                icon = painterResource(id = R.drawable.ic_launcher_preview),
                 modifier = Modifier.size(100.dp),
                 fraction = 1.50f
             )
