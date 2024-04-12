@@ -1,0 +1,87 @@
+name: Build APK
+
+on:
+  push:
+    tags: [ "*" ]
+    branches: [ "main" ]
+    paths:
+      - '.github/workflows/build.yml'
+      - 'app/**'
+      - 'apd/**'
+      - 'build.gradle.kts'
+      - 'gradle/libs.versions.toml'
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - '.github/workflows/build.yml'
+      - 'app/**'
+      - 'apd/**'
+      - 'build.gradle.kts'
+      - 'gradle/libs.versions.toml'
+  workflow_call:
+  workflow_dispatch:
+
+jobs:
+  build-manager:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate version
+        id: parse_version
+        run: |
+          COMMIT_NUM=$(git rev-list --count HEAD)
+          VERSION=$(echo "$COMMIT_NUM + 200 + 10000" | bc)
+          echo "Generated Version: $VERSION"
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-home-cache-cleanup: true
+
+      - name: Setup Android NDK
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r25c
+          add-to-path: true
+          local-cache: true
+
+      - name: Install toolchain
+        run: |
+          rustup default stable
+          cargo install cargo-ndk
+          rustup target install aarch64-linux-android
+
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apd
+          cache-targets: false
+
+      - name: Build with Gradle
+        run: |
+          echo 'org.gradle.parallel=true' >> gradle.properties
+          echo 'org.gradle.vfs.watch=true' >> gradle.properties
+          echo 'org.gradle.jvmargs=-Xmx2048m' >> gradle.properties
+          echo 'android.native.buildOutput=verbose' >> gradle.properties
+          sed -i 's/org.gradle.configuration-cache=true//g' gradle.properties
+          ./gradlew clean assembleRelease
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: APatch
+          path: app/build/outputs/apk/release/*.apk
+          
